@@ -71,7 +71,7 @@ function GoogleSearchService() {
 
 			const searchResults = dom.window.document.querySelectorAll(".g");
 
-			const results = [];
+			let results = [];
 
 			searchResults.forEach((result) => {
 				const title = result.querySelector("h3");
@@ -86,6 +86,10 @@ function GoogleSearchService() {
 					});
 				}
 			});
+
+			results = results.filter(result => {
+				return result.url.includes('themoviedb.org/movie') || result.url.includes('themoviedb.org/tv') || result.url.includes('imdb.com/title')
+			})
 
 			let snippet = {
 				title:
