@@ -1,6 +1,4 @@
-export async function searchWithoutFilter(param) {
 
-}
 
 const { gotScraping } = require("got-scraping");
 const { JSDOM } = require("jsdom");
