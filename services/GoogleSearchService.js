@@ -1,3 +1,7 @@
+export async function searchWithoutFilter(param) {
+
+}
+
 const { gotScraping } = require("got-scraping");
 const { JSDOM } = require("jsdom");
 const { HeaderGenerator } = require("header-generator");
@@ -90,6 +94,100 @@ function GoogleSearchService() {
 			results = results.filter(result => {
 				return result.url.includes('themoviedb.org/movie') || result.url.includes('themoviedb.org/tv') || result.url.includes('imdb.com/title')
 			})
+
+			let snippet = {
+				title:
+					document.querySelector(".co8aDb")?.textContent ||
+					document.querySelector(".LC20lb")?.textContent,
+				description:
+					document.querySelector(".hgKElc")?.textContent.trim() ||
+					document
+						.querySelector(".i8Z77e")
+						?.innerHTML.split("</li>")
+						.filter((item) => item !== "")
+						.map((item) => item.slice(item.indexOf(">") + 1))
+						.join("\n") ||
+					document
+						.querySelector(".X5LH0c")
+						?.innerHTML.split("</li>")
+						.filter((item) => item !== "")
+						.map(
+							(item, index) => index + 1 + ". " + item.slice(item.indexOf(">") + 1)
+						)
+						.join("\n"),
+			};
+
+			if (!snippet.description) snippet = null;
+
+			return {
+				code: 200,
+				status: "success",
+				message: `Found ${results.length} results in ${formatTime(
+					(performance.now() - start) / 1000
+				)}`,
+				query,
+				data: { snippet, results },
+			};
+		},
+		searchWithoutFilter : async ({ query, options }) => {
+			const start = performance.now();
+			const headers = options?.headers || getHeaders();
+			const sendHtml = options?.html || "false";
+
+			delete options?.html;
+
+			const response = await gotScraping({
+				url: "https://www.google.com/search",
+				searchParams: {
+					q: query,
+					num: 100,
+				},
+				headers,
+				...options,
+				responseType: "text",
+			});
+
+			if ( sendHtml === "true" ) {
+				return {
+					code: 200,
+					status: "success",
+					message: "HTML response",
+					query,
+					body: response.body,
+				};
+			}
+
+			if ( response.statusCode !== 200 ) {
+				return {
+					code: response.statusCode,
+					status: "error",
+					message: "Captcha or too many requests.",
+					query,
+					body: response.body,
+				};
+			}
+
+			const dom = new JSDOM(response.body);
+			const document = dom.window.document;
+
+			const searchResults = dom.window.document.querySelectorAll(".g");
+
+			let results = [];
+
+			searchResults.forEach((result) => {
+				const title = result.querySelector("h3");
+				const url = result.querySelector("a");
+				const description = result.querySelector(".VwiC3b");
+
+				if (title && url && description) {
+					results.push({
+						title: title.textContent,
+						url: url.href,
+						description: description.textContent,
+					});
+				}
+			});
+
 
 			let snippet = {
 				title:
